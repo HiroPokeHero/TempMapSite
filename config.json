@@ -1,0 +1,22 @@
+{
+  "supabase": {
+    "url": "https://nqitltxjcpjxzevakoil.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xaXRsdHhqY3BqeHpldmFrb2lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODE2NTEsImV4cCI6MjA5NDg1NzY1MX0.neNPy1MLh7Nk8HpkWO28rEFgbnRFiNHp03BtMwUCpd4"
+  },
+  "locations": [
+    { "name": "東岡崎駅", "lat": 34.951854, "lng": 137.166800 },
+    { "name": "刈谷駅", "lat": 34.9904, "lng": 137.0084 },
+    { "name": "河内国分駅", "lat": 34.566888, "lng": 135.635607 },
+    { "name": "大和八木駅", "lat": 34.5126, "lng": 135.7956 },
+    { "name": "ジェイテクト花園工場", "lat": 35.010072, "lng": 137.194929 },
+    { "name": "ジェイテクト刈谷工場", "lat": 35.000756, "lng": 137.010792 },
+    { "name": "ジェイテクト国分工場", "lat": 34.5663, "lng": 135.6558 },
+    { "name": "ジェイテクト奈良工場", "lat": 34.5095, "lng": 135.7836 }
+  ],
+  "devices": [
+    "BUS-JT-9024",
+    "BUS-JT-1102",
+    "BUS-JT-3341",
+    "test1"
+  ]
+}

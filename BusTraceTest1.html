@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>到着時間予測 AI App - Standalone Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Core CDNs -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              450: '#8493a8',
+              455: '#7e8fa6',
+              750: '#2d3b50',
+              850: '#1b2330',
+            },
+            blue: {
+              150: '#bfdbfe',
+              305: '#7dd3fc',
+              450: '#38bdf8',
+            },
+            emerald: {
+              450: '#34d399',
+              955: '#064e3b',
+            },
+            violet: {
+              455: '#c084fc',
+              955: '#4c1d95',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Leaflet Maps -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- TensorFlow.js, Chart.js, Supabase, React and ReactDOM + Babel -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+      background-color: #f1f5f9;
+      background-image: radial-gradient(circle at 10% 20%, rgba(220, 238, 255, 0.5) 0%, rgba(255, 255, 255, 0.95) 90%);
+      color: #0f172a;
+      min-height: 100vh;
+    }
+    .custom-leaflet-icon {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+    }
+    .grayscale-map .leaflet-tile-container {
+      filter: grayscale(70%) contrast(105%) brightness(103%) !important;
+    }
+    .leaflet-marker-pane {
+      z-index: 600 !important;
+    }
+    .leaflet-popup-content-wrapper {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      font-family: "Inter", sans-serif !important;
+      border-radius: 12px !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1) !important;
+    }
+    .leaflet-popup-tip {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    input[type="range"] {
+      accent-color: #2563eb;
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-8">
+
+  <!-- React mounting container -->
+  <div id="root" class="max-w-7xl mx-auto"></div>
+
+  <!-- React UI and scripts compiled via Babel inside browser -->
+  <script type="text/babel">
+
+    // --- REUSABLE INLINE SVG ICONS ---
+    const Icons = {
+      Navigation: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
+      ),
+      MapPin: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      ),
+      Clock: ({ className }) => (
+        <svg className={className || "w-5 h-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+      Gauge: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2z" />
+          <path d="m19 5-3.5 3.5" />
+          <circle cx="12" cy="12" r="1.5" />
+        </svg>
+      ),
+      Compass: ({ className }) => (
+        <svg className={className || "w-5 h-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+      ),
+      Sparkles: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+        </svg>
+      ),
+      Info: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      ),
+      Calendar: () => (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      ),
+      Layers: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2" /><polygon points="2 17 12 22 22 17" /><polygon points="2 12 12 17 22 12" />
+        </svg>
+      ),
+      Database: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+        </svg>
+      ),
+      Activity: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+      ),
+      HelpCircle: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /><circle cx="12" cy="12" r="10" />
+        </svg>
+      ),
+      Brain: () => (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" />
+          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" />
+        </svg>
+      ),
+      Play: () => (
+        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <polygon points="5 3 19 12 5 21 5 3" />
+        </svg>
+      ),
+      Square: () => (
+        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+        </svg>
+      ),
+      ArrowsRight: () => (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <polyline points="13 5 20 12 13 19" /><line x1="4" y1="12" x2="20" y2="12" />
+        </svg>
+      ),
+      Check: () => (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ),
+      Flame: () => (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5z" />
+        </svg>
+      ),
+    };
+
+    // --- GEOLOCATION UTILS ---
+    function getDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function interpolatePosition(lat1, lng1, lat2, lng2, fraction) {
+      return {
+        lat: lat1 + (lat2 - lat1) * fraction,
+        lng: lng1 + (lng2 - lng1) * fraction,
+      };
+    }
+
+    function generatePresetTrainingData() {
+      const data = [];
+      for (let i = 0; i < 150; i++) {
+        const distance_km = Math.random() * 48 + 2;
+        const speed_kmh = Math.random() * 95 + 5;
+        const hour = Math.floor(Math.random() * 24);
+        let base_time_min = (distance_km / speed_kmh) * 60;
+
+        if (speed_kmh < 15) {
+          base_time_min += (distance_km * 2.2) + Math.random() * 6;
+        } else if (speed_kmh < 40) {
+          base_time_min += (distance_km * 0.8) + Math.random() * 4;
+        } else if (speed_kmh < 70) {
+          base_time_min += (distance_km * 0.2) + Math.random() * 2;
+        }
+
+        if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
+          base_time_min *= (1.15 + (Math.random() * 0.25));
+        }
+
+        base_time_min += (Math.random() - 0.3) * 1.5;
+        data.push({
+          distance_km: Math.round(distance_km * 100) / 100,
+          speed_kmh: Math.round(speed_kmh * 10) / 10,
+          hour,
+          actual_time_min: Math.max(1, Math.round(base_time_min * 10) / 10),
+        });
+      }
+      return data;
+    }
+
+    // --- SUPABASE LOCAL WRAPPER SERVICE ---
+    class DatabaseWrapper {
+      constructor() {
+        this.client = null;
+        this.isConnected = false;
+        this.url = localStorage.getItem("eta_supabase_url") || "";
+        this.anonKey = localStorage.getItem("eta_supabase_key") || "";
+        
+        this.localLogs = JSON.parse(localStorage.getItem("eta_local_logs") || "[]");
+        this.localTrainingData = JSON.parse(localStorage.getItem("eta_local_training") || "[]");
+
+        if (this.localTrainingData.length === 0) {
+          this.localTrainingData = generatePresetTrainingData();
+          localStorage.setItem("eta_local_training", JSON.stringify(this.localTrainingData));
+        }
+
+        if (this.url && this.anonKey && window.supabase) {
+          try {
+            this.client = window.supabase.createClient(this.url, this.anonKey);
+            this.isConnected = true;
+          } catch (e) {
+            console.error("Supabase fail", e);
+          }
+        }
+      }
+
+      getIsConnected() { return this.isConnected; }
+      getUrl() { return this.url; }
+      getAnonKey() { return this.anonKey; }
+
+      async connect(url, anonKey) {
+        if (!url || !anonKey) {
+          this.disconnect();
+          return { success: false, message: "URLとAPIキーを入力してください。" };
+        }
+        try {
+          if (!window.supabase) {
+            return { success: false, message: "Supabase SDKが準備されていません。" };
+          }
+          const tempClient = window.supabase.createClient(url, anonKey);
+          const { error } = await tempClient.from("gps_logs").select("*").limit(1);
+          
+          this.client = tempClient;
+          this.url = url;
+          this.anonKey = anonKey;
+          this.isConnected = true;
+          localStorage.setItem("eta_supabase_url", url);
+          localStorage.setItem("eta_supabase_key", anonKey);
+
+          return { success: true, message: "Supabaseと接続＆自動同期を開始しました！" };
+        } catch (e) {
+          return { success: false, message: `通信時エラー: ${e.message || e}` };
+        }
+      }
+
+      disconnect() {
+        this.client = null;
+        this.isConnected = false;
+        this.url = "";
+        this.anonKey = "";
+        localStorage.removeItem("eta_supabase_url");
+        localStorage.removeItem("eta_supabase_key");
+      }
+
+      async addGPSLog(log) {
+        const newLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          created_at: new Date().toISOString(),
+          ...log
+        };
+        this.localLogs.unshift(newLog);
+        if (this.localLogs.length > 200) this.localLogs.pop();
+        localStorage.setItem("eta_local_logs", JSON.stringify(this.localLogs));
+
+        if (this.isConnected && this.client) {
+          try {
+            await this.client.from("gps_logs").insert([{
+              latitude: Math.round(log.latitude * 1000000),
+              longitude: Math.round(log.longitude * 1000000),
+              speed: Math.round(log.speed_kmh * 100),
+              device_id: log.device_id || "BUS-JT-9024"
+            }]);
+          } catch (err) {
+            console.warn("Supabase backup failed", err);
+          }
+        }
+        return newLog;
+      }
+
+      async getGPSLogs(deviceId = null) {
+        if (this.isConnected && this.client) {
+          try {
+            let query = this.client.from("gps_logs").select("*").order("created_at", { ascending: false }).limit(100);
+            
+            // ▼追加：deviceIdが指定されていれば、そのIDのデータだけに絞り込む
+            if (deviceId) {
+              query = query.eq("device_id", deviceId);
+            }
+            
+            const { data } = await query;
+            if (data) return data.map(r => ({
+              id: r.id,
+              created_at: r.created_at,
+              latitude: r.latitude > 180 ? r.latitude / 1000000 : r.latitude,
+              longitude: r.longitude > 180 ? r.longitude / 1000000 : r.longitude,
+              speed_kmh: r.speed ? r.speed / 100 : 0,
+              target_lat: 34.9517,
+              target_lng: 137.1625,
+            }));
+          } catch (e) {}
+        }
+        return this.localLogs;
+      }
+
+      async getLatestGPSLog(deviceId = null) {
+        const logs = await this.getGPSLogs(deviceId);
+        return logs.length > 0 ? logs[0] : null;
+      }
+
+      async addTrainingData(item) {
+        this.localTrainingData.unshift(item);
+        localStorage.setItem("eta_local_training", JSON.stringify(this.localTrainingData));
+      }
+
+      async getTrainingDatas() {
+        return this.localTrainingData;
+      }
+
+      resetLocalData() {
+        this.localLogs = [];
+        this.localTrainingData = generatePresetTrainingData();
+        localStorage.setItem("eta_local_logs", JSON.stringify(this.localLogs));
+        localStorage.setItem("eta_local_training", JSON.stringify(this.localTrainingData));
+      }
+    }
+
+    const dbService = new DatabaseWrapper();
+
+    // --- TENSORFLOW LOCAL AI ENGINE MODEL ---
+    class ETAInferenceModel {
+      constructor() {
+        this.model = null;
+        this.isTraining = false;
+        this.scaleDistMax = 60;
+        this.scaleSpeedMax = 120;
+        this.scaleHourMax = 24;
+        this.scaleTimeMax = 120;
+        this.buildModel();
+      }
+
+      buildModel() {
+        const model = tf.sequential();
+        model.add(tf.layers.dense({ inputShape: [3], units: 16, activation: "relu" }));
+        model.add(tf.layers.dense({ units: 8, activation: "relu" }));
+        model.add(tf.layers.dense({ units: 1 }));
+        this.model = model;
+      }
+
+      async train(data, epochs, learningRate, onEpochEnd) {
+        this.isTraining = true;
+        const inputs = [];
+        const labels = [];
+
+        data.forEach(item => {
+          inputs.push([
+            Math.min(item.distance_km / this.scaleDistMax, 1.0),
+            Math.min(item.speed_kmh / this.scaleSpeedMax, 1.0),
+            item.hour / this.scaleHourMax
+          ]);
+          labels.push([Math.min(item.actual_time_min / this.scaleTimeMax, 1.0)]);
+        });
+
+        const xs = tf.tensor2d(inputs);
+        const ys = tf.tensor2d(labels);
+
+        const optimizer = tf.train.adam(learningRate);
+        this.model.compile({ optimizer, loss: "meanSquaredError" });
+
+        try {
+          await this.model.fit(xs, ys, {
+            epochs,
+            batchSize: 16,
+            shuffle: true,
+            callbacks: {
+              onEpochEnd: async (epoch, logs) => {
+                if (logs && logs.loss !== undefined) {
+                  onEpochEnd(epoch + 1, logs.loss);
+                }
+              }
+            }
+          });
+        } finally {
+          xs.dispose();
+          ys.dispose();
+          this.isTraining = false;
+        }
+      }
+
+      predict(distanceKm, speedKmh, hour) {
+        const startTime = performance.now();
+        const fallbackSpeed = Math.max(1, speedKmh);
+        const physicalMinutes = (distanceKm / fallbackSpeed) * 60;
+
+        if (!this.model || this.isTraining) {
+          return {
+            predictedMinutes: Math.round(physicalMinutes * 10) / 10,
+            inferenceTimeMs: Math.round((performance.now() - startTime) * 10) / 10,
+          };
+        }
+
+        try {
+          const rawDistance = Math.min(distanceKm / this.scaleDistMax, 1.0);
+          const rawSpeed = Math.min(speedKmh / this.scaleSpeedMax, 1.0);
+          const rawHour = hour / this.scaleHourMax;
+
+          const inputTensor = tf.tensor2d([[rawDistance, rawSpeed, rawHour]]);
+          const outputTensor = this.model.predict(inputTensor);
+          const normalizedResult = outputTensor.dataSync()[0];
+
+          inputTensor.dispose();
+          outputTensor.dispose();
+
+          let predictedMinutes = normalizedResult * this.scaleTimeMax;
+          if (predictedMinutes < 0.1 || isNaN(predictedMinutes)) {
+            predictedMinutes = physicalMinutes;
+          } else {
+            predictedMinutes = Math.max(physicalMinutes * 0.3, Math.min(physicalMinutes * 3.5, predictedMinutes));
+          }
+
+          return {
+            predictedMinutes: Math.round(predictedMinutes * 10) / 10,
+            inferenceTimeMs: Math.round((performance.now() - startTime) * 10) / 10,
+          };
+        } catch (e) {
+          return {
+            predictedMinutes: Math.round(physicalMinutes * 10) / 10,
+            inferenceTimeMs: Math.round((performance.now() - startTime) * 10) / 10,
+          };
+        }
+      }
+    }
+
+    const aiModelService = new ETAInferenceModel();
+
+    // --- CHART COMPONENT USING NATIVE CHART.JS ---
+    function LossChart({ data }) {
+      const canvasRef = React.useRef(null);
+      const chartInstanceRef = React.useRef(null);
+
+      React.useEffect(() => {
+        if (!canvasRef.current || data.length === 0) return;
+
+        const ctx = canvasRef.current.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 160);
+        gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+        gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.destroy();
+        }
+
+        chartInstanceRef.current = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.map(d => d.epoch),
+            datasets: [{
+              label: 'Loss',
+              data: data.map(d => d.loss),
+              borderColor: '#a78bfa',
+              borderWidth: 2,
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.1,
+              pointRadius: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+              y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }
+            }
+          }
+        });
+
+        return () => {
+          if (chartInstanceRef.current) {
+            chartInstanceRef.current.destroy();
+          }
+        };
+      }, [data]);
+
+      return <div className="h-40 w-full"><canvas ref={canvasRef}></canvas></div>;
+    }
+
+    // --- VIEW COMPONENT: MAP ---
+    function MapContainer({ startLat, startLng, endLat, endLng, currentLat, currentLng, onSelectLocation, selectionMode, deviceId }) {
+      const mapRef = React.useRef(null);
+      const startMarkerRef = React.useRef(null);
+      const endMarkerRef = React.useRef(null);
+      const currentMarkerRef = React.useRef(null);
+      const routeLineRef = React.useRef(null);
+      const drivenLineRef = React.useRef(null);
+
+      // Create Custom div icons
+      const createCustomIcon = (type, devId) => {
+        let text = "S";
+        let color = "bg-emerald-600";
+        if (type === "end") {
+          text = "G";
+          color = "bg-rose-600 animate-bounce";
+        }
+        
+        let html = `
+          <div class="flex items-center justify-center w-8 h-8 rounded-full ${color} text-white border-2 border-white shadow-md font-bold text-sm">
+            ${text}
+          </div>
+        `;
+
+        if (type === "current") {
+          const label = devId || "BUS-JT-9024";
+          html = `
+            <div class="flex flex-col items-center justify-end h-full select-none" style="transform: translateY(-8px);">
+              <div class="bg-black text-[10px] font-mono font-bold text-white px-2.5 py-1 rounded-lg border border-slate-700 shadow-xl whitespace-nowrap flex items-center gap-1.5 z-50">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+                <span>${label}</span>
+              </div>
+              <div class="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-black -mt-[1px] mb-1"></div>
+              <div class="relative flex items-center justify-center w-6 h-6">
+                <span class="absolute inline-flex h-full w-full rounded-full bg-black opacity-35 animate-ping"></span>
+                <div class="relative w-4.5 h-4.5 rounded-full bg-black border-2 border-white shadow-lg flex items-center justify-center">
+                  <div class="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                </div>
+              </div>
+            </div>
+          `;
+          return L.divIcon({ html, className: "custom-leaflet-icon", iconSize: [140, 70], iconAnchor: [70, 62] });
+        }
+
+        return L.divIcon({ html, className: "custom-leaflet-icon", iconSize: [32, 32], iconAnchor: [16, 16] });
+      };
+
+      React.useEffect(() => {
+        const midLat = (startLat + endLat) / 2;
+        const midLng = (startLng + endLng) / 2;
+        
+        const map = L.map("map-target", { center: [midLat, midLng], zoom: 11 });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        mapRef.current = map;
+
+        map.on("click", (e) => {
+          if (selectionMode) {
+            onSelectLocation(selectionMode, e.latlng.lat, e.latlng.lng);
+          }
+        });
+
+        return () => { map.remove(); };
+      }, []);
+
+      React.useEffect(() => {
+        if (!mapRef.current) return;
+        const container = mapRef.current.getContainer();
+        container.style.cursor = selectionMode ? "crosshair" : "";
+      }, [selectionMode]);
+
+      React.useEffect(() => {
+        if (!mapRef.current) return;
+        const map = mapRef.current;
+
+        // Start marker
+        if (startMarkerRef.current) startMarkerRef.current.setLatLng([startLat, startLng]);
+        else startMarkerRef.current = L.marker([startLat, startLng], { icon: createCustomIcon("start") }).addTo(map);
+
+        // End marker
+        if (endMarkerRef.current) endMarkerRef.current.setLatLng([endLat, endLng]);
+        else endMarkerRef.current = L.marker([endLat, endLng], { icon: createCustomIcon("end") }).addTo(map);
+
+        // Current GPS marker
+        if (currentMarkerRef.current) {
+          currentMarkerRef.current.setLatLng([currentLat, currentLng]);
+          currentMarkerRef.current.setIcon(createCustomIcon("current", deviceId));
+        } else {
+          currentMarkerRef.current = L.marker([currentLat, currentLng], { icon: createCustomIcon("current", deviceId) }).addTo(map);
+        }
+
+        // Lines
+        const remainingCoords = [[currentLat, currentLng], [endLat, endLng]];
+        if (routeLineRef.current) routeLineRef.current.setLatLngs(remainingCoords);
+        else routeLineRef.current = L.polyline(remainingCoords, { color: "#0284c7", weight: 5, dashArray: "1, 8", opacity: 0.9 }).addTo(map);
+
+        const drivenCoords = [[startLat, startLng], [currentLat, currentLng]];
+        if (drivenLineRef.current) drivenLineRef.current.setLatLngs(drivenCoords);
+        else drivenLineRef.current = L.polyline(drivenCoords, { color: "#64748b", weight: 4, opacity: 0.7 }).addTo(map);
+
+      }, [startLat, startLng, endLat, endLng, currentLat, currentLng, deviceId]);
+
+      const handleFitBounds = () => {
+        if (!mapRef.current) return;
+        const bounds = L.latLngBounds([[startLat, startLng], [endLat, endLng], [currentLat, currentLng]]);
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      };
+
+      return (
+        <div className="relative w-full h-[360px] rounded-xl overflow-hidden border border-slate-200 shadow-inner">
+          {selectionMode && (
+            <div className="absolute top-3 left-3 z-[1000] bg-blue-950 text-blue-300 border border-blue-800 text-xs px-3 py-1.5 rounded-full shadow flex items-center gap-1 font-mono">
+              ★ 地図上をクリックして {selectionMode === "start" ? "出発地" : "目的地"} を配置してください
+            </div>
+          )}
+          <div id="map-target" class="w-full h-full grayscale-map"></div>
+          <button onClick={handleFitBounds} className="absolute bottom-4 right-4 z-[1000] bg-white hover:bg-slate-50 text-slate-800 p-2.5 rounded-lg shadow-lg border border-slate-200">
+            <Icons.Compass />
+          </button>
+        </div>
+      );
+    }
+
+// --- VIEW COMPONENT: SUPABASE CONFIG ---
+    function SupabaseConfigComponent({ isConnected }) {
+      return (
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b pb-3 border-slate-100 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-emerald-50 text-emerald-600 p-2 rounded-xl"><Icons.Database /></div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm font-sans">Supabase 接続ステータス</h4>
+                <p className="text-[11px] text-slate-500">外部設定ファイル(config.json)による自動同期</p>
+              </div>
+            </div>
+            {isConnected ? (
+              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border px-2.5 py-0.5 rounded-full">クラウド同期中</span>
+            ) : <span className="text-[11px] bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full">未接続・ローカルモード</span>}
+          </div>
+          <div className="text-[10px] text-slate-500 font-sans leading-relaxed">
+            {isConnected
+              ? "config.json の設定を用いてSupabaseと正常にデータトンネルを確立しています。"
+              : "クラウドに接続されていません。ローカルブラウザストレージをDB代理として動作させます。"}
+          </div>
+        </div>
+      );
+    }
+
+    // --- VIEW COMPONENT: MODEL TRAINER ---
+    function ModelTrainer({ onModelStatusChange, triggerPrediction, trainingSamplesCount, setTrainingSamplesCount }) {
+      const [epochs, setEpochs] = React.useState(60);
+      const [lr, setLr] = React.useState(0.015);
+      const [list, setList] = React.useState([]);
+      const [status, setStatus] = React.useState({ state: "untrained", currentEpoch: 0, currentLoss: 0, lossHistory: [], msg: "お持ちの走行実績（ローカル履歴含む）でAIを自律学習させます。" });
+
+      const loadData = async () => {
+        const d = await dbService.getTrainingDatas();
+        setList(d);
+        setTrainingSamplesCount(d.length);
+      };
+
+      React.useEffect(() => { loadData(); }, []);
+
+      const handleAddPresets = async () => {
+        const pre = generatePresetTrainingData();
+        for (let i = 0; i < 30; i++) {
+          await dbService.addTrainingData(pre[i]);
+        }
+        await loadData();
+      };
+
+      const handleReset = () => {
+        dbService.resetLocalData();
+        loadData();
+      };
+
+      const handleTrain = async () => {
+        if (list.length === 0) {
+          alert("学習用データがありません。擬似走行実績ボタンを押して加算してください。");
+          return;
+        }
+
+        const runStatus = { state: "training", currentEpoch: 0, currentLoss: 0, lossHistory: [], msg: "TensorFlow.jsによるバックプロパゲーション演算を開始..." };
+        setStatus(runStatus);
+        onModelStatusChange(runStatus);
+
+        const history = [];
+        try {
+          await aiModelService.train(list, epochs, lr, (epoch, loss) => {
+            const clean = Math.round(loss * 100000) / 100000;
+            history.push({ epoch, loss: clean });
+            const step = { state: "training", currentEpoch: epoch, currentLoss: clean, lossHistory: [...history], msg: `Epoch ${epoch}/${epochs} 損失演算: ${clean}` };
+            setStatus(step);
+            onModelStatusChange(step);
+          });
+
+          const ready = { state: "ready", currentEpoch: epochs, currentLoss: history[history.length - 1]?.loss || 0, lossHistory: history, msg: "モデル準備完了！到着ETAの非線形補正が自律稼働を開始しました。" };
+          setStatus(ready);
+          onModelStatusChange(ready);
+          triggerPrediction();
+        } catch (e) {
+          const broken = { state: "untrained", currentEpoch: 0, currentLoss: 0, lossHistory: [], msg: "学習エラー。実績値を再精査してください。" };
+          setStatus(broken);
+          onModelStatusChange(broken);
+        }
+      };
+
+      return (
+        <div className="bg-slate-900 text-slate-100 rounded-2xl p-5 border border-slate-800 shadow flex flex-col gap-4">
+          <div className="flex justify-between items-center border-b pb-3 border-slate-800 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-violet-955 text-violet-400 p-2 rounded-xl"><Icons.Brain /></div>
+              <div>
+                <h4 className="font-bold text-slate-200 text-sm">自律学習型ディープラーニング予測器</h4>
+                <p className="text-[10px] text-slate-400">ニューラルネットワークが勾配降下法をブラウザ上で並列計算します</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-mono bg-black text-slate-400 px-2 py-0.5 rounded border border-slate-800">実績走行ログ: {list.length}件</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div className="lg:col-span-5 bg-black p-4 rounded-xl border border-slate-800 flex flex-col gap-4 justify-between font-mono text-xs">
+              <div className="flex flex-col gap-3">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ハイパーパラメータ</span>
+                
+                <div>
+                  <div className="flex justify-between text-[11px]"><span>エポック数: {epochs}回</span></div>
+                  <input type="range" min="10" max="150" step="10" value={epochs} onChange={e => setEpochs(Number(e.target.value))} disabled={status.state === "training"} className="w-full accent-violet-500" />
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-[11px]"><span>学習率 (Learning Rate): {lr}</span></div>
+                  <input type="range" min="0.002" max="0.04" step="0.002" value={lr} onChange={e => setLr(Number(e.target.value))} disabled={status.state === "training"} className="w-full accent-violet-500" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-3 border-t border-slate-850">
+                <div className="flex gap-1">
+                  <button onClick={handleAddPresets} disabled={status.state === "training"} className="flex-1 bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg text-[10px] font-bold">疑似実績蓄積 (+30件)</button>
+                  <button onClick={handleReset} disabled={status.state === "training"} className="bg-slate-800 hover:bg-red-955 p-1.5 rounded-lg text-[10px] text-red-400 font-bold">リセット</button>
+                </div>
+                <button onClick={handleTrain} disabled={status.state === "training" || list.length === 0} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold p-2.5 rounded-xl text-center">
+                  {status.state === "training" ? "学習進行中..." : "AIモデルの再学習を実行"}
+                </button>
+              </div>
+            </div>
+
+            <div className="lg:col-span-7 bg-black/50 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 min-h-[160px]">
+              <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">自律誤差収束モニター (Loss)</span>
+              {status.lossHistory.length > 0 ? (
+                <LossChart data={status.lossHistory} />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 text-[11px] font-sans">
+                  データを入れたあと、再学習を実行するとロス収束グラフが動的に描かれます。
+                </div>
+              )}
+              <div className="text-[10px] font-mono text-slate-500 border-t border-slate-900 pt-1.5 truncate">
+                Status: {status.msg}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // --- MAIN CORE APPLICATION VIEW ---
+    function App() {
+      const [appConfig, setAppConfig] = React.useState(null);
+
+      React.useEffect(() => {
+        fetch('./config.json')
+          .then(res => res.json())
+          .then(data => {
+            setAppConfig(data);
+            
+            // JSONに記載されたデバイスの先頭を初期セット
+            if (data.devices && data.devices.length > 0) {
+              setDeviceId(data.devices[0]);
+            }
+            
+            // JSONにSupabase設定があれば自動接続を試みる
+            if (data.supabase && data.supabase.url && data.supabase.anonKey) {
+              dbService.connect(data.supabase.url, data.supabase.anonKey).then(res => {
+                setConnected(res.success);
+              });
+            }
+          })
+          .catch(err => {
+            console.error("設定ファイルの読み込みエラー:", err);
+            alert("config.json の読み込みに失敗しました。ファイルが存在するか確認してください。");
+          });
+      }, []);
+      
+      const [startLat, setStartLat] = React.useState(34.951854);
+      const [startLng, setStartLng] = React.useState(137.166800);
+      const [endLat, setEndLat] = React.useState(35.010072);
+      const [endLng, setEndLng] = React.useState(137.194929);
+      const [currentLat, setCurrentLat] = React.useState(34.951854);
+      const [currentLng, setCurrentLng] = React.useState(137.166800);
+      const [currentSpeed, setCurrentSpeed] = React.useState(60);
+
+      const [gpsInterval, setGpsInterval] = React.useState(15);
+      const [deviceId, setDeviceId] = React.useState("BUS-JT-9024");
+      const [selectionMode, setSelectionMode] = React.useState(null);
+      const [routeMode, setRouteMode] = React.useState("list");
+
+      // Coordinates strings state
+      const [fSLat, setFSLat] = React.useState("34.951854");
+      const [fSLng, setFSLng] = React.useState("137.166800");
+      const [fELat, setFELat] = React.useState("35.010072");
+      const [fELng, setFELng] = React.useState("137.194929");
+
+      const [connected, setConnected] = React.useState(false);
+      const [samples, setSamples] = React.useState(0);
+      const [modelState, setModelState] = React.useState("untrained");
+      
+      const [currentHour, setCurrentHour] = React.useState(new Date().getHours());
+      const [prediction, setPrediction] = React.useState({ predictedMinutes: 0, mathematicalMinutes: 0, inferenceTimeMs: 0 });
+      const [showGuide, setShowGuide] = React.useState(false);
+      const [tripAlert, setTripAlert] = React.useState(null);
+
+      const handleApplyManual = () => {
+        const sLa = parseFloat(fSLat); const sLn = parseFloat(fSLng);
+        const eLa = parseFloat(fELat); const eLn = parseFloat(fELng);
+        if (isNaN(sLa) || isNaN(sLn) || isNaN(eLa) || isNaN(eLn)) {
+          alert("入力された形式が無効です。半角数字を使用してください。");
+          return;
+        }
+        setStartLat(sLa); setStartLng(sLn);
+        setEndLat(eLa); setEndLng(eLn);
+        setCurrentLat(sLa); setCurrentLng(sLn);
+        setSelectionMode(null);
+      };
+
+      const handleSelectLocation = (type, lat, lng) => {
+        const la = Math.round(lat * 10000) / 10000;
+        const ln = Math.round(lng * 10000) / 10000;
+        if (type === "start") {
+          setStartLat(la); setStartLng(ln);
+          setCurrentLat(la); setCurrentLng(ln);
+          setFSLat(la.toString()); setFSLng(ln.toString());
+        } else {
+          setEndLat(la); setEndLng(ln);
+          setFELat(la.toString()); setFELng(ln.toString());
+        }
+        setSelectionMode(null);
+      };
+
+      const triggerPrediction = () => {
+        const dist = getDistanceKm(currentLat, currentLng, endLat, endLng);
+        const speed = Math.max(0.5, currentSpeed);
+        const aiPred = aiModelService.predict(dist, speed, currentHour);
+        const mathPred = Math.round(((dist / speed) * 60) * 10) / 10;
+
+        setPrediction({
+          predictedMinutes: aiPred.predictedMinutes,
+          mathematicalMinutes: mathPred,
+          inferenceTimeMs: aiPred.inferenceTimeMs,
+        });
+      };
+
+      React.useEffect(() => { triggerPrediction(); }, [currentLat, currentLng, endLat, endLng, currentSpeed, currentHour, modelState]);
+
+      // Supabase GPS polling
+      React.useEffect(() => {
+        const syncGps = async () => {
+          try {
+            const last = await dbService.getLatestGPSLog(deviceId);
+            if (last) {
+              setCurrentLat(last.latitude);
+              setCurrentLng(last.longitude);
+              setCurrentSpeed(last.speed_kmh);
+              // ▼削除: 取得したデータで画面のデバイス名を強制上書きする処理を消す（画面の選択を優先するため）
+              // if (last.device_id) setDeviceId(last.device_id);
+            }
+          } catch(e){}
+        };
+        syncGps();
+        const timer = setInterval(syncGps, gpsInterval * 1000);
+        return () => clearInterval(timer);
+      // ▼修正: 監視リストの最後に `deviceId` を追加（デバイス名が変わったらタイマーを再起動させる）
+      }, [gpsInterval, connected, deviceId]);
+
+      // 設定ファイル読み込み中はローディング画面を表示
+      if (!appConfig) {
+        return <div className="flex h-screen items-center justify-center font-bold text-slate-500">システム設定（config.json）を読み込み中...</div>;
+      }
+
+      const handleTripComplete = async (actualMins) => {
+        const dist = getDistanceKm(startLat, startLng, endLat, endLng);
+        const record = {
+          distance_km: Math.round(dist * 100)/100,
+          speed_kmh: Math.round(currentSpeed * 10)/10,
+          hour: currentHour,
+          actual_time_min: Math.round(actualMins * 10)/10
+        };
+        await dbService.addTrainingData(record);
+        setTripAlert({ actual: record.actual_time_min, dist: record.distance_km });
+        const list = await dbService.getTrainingDatas();
+        setSamples(list.length);
+      };
+
+      const handleRestoreDB = async () => {
+        const logs = await dbService.getGPSLogs(deviceId);
+        if (logs.length > 0) {
+          const first = logs[0];
+          setStartLat(first.latitude); setStartLng(first.longitude);
+          setCurrentLat(first.latitude); setCurrentLng(first.longitude);
+          alert("最後に送信されたGPS履歴よりルート位置を完全復元しました。");
+        } else {
+          alert("復元対象のログが登録されていません。");
+        }
+      };
+
+      const formatETA = (minsLeft) => {
+        const d = new Date(); d.setSeconds(d.getSeconds() + minsLeft * 60);
+        return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+      };
+
+      const remD = getDistanceKm(currentLat, currentLng, endLat, endLng);
+
+      return (
+        <div className="flex flex-col gap-6">
+          {/* Header */}
+          <div className="flex justify-between items-center gap-4 flex-wrap border-b pb-5 border-slate-200">
+            <div>
+              <h1 className="text-2xl font-extrabold flex items-center gap-2 text-slate-900 leading-none">
+                到着時間予測 AI App <span className="text-[10px] bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-full">STANDALONE</span>
+              </h1>
+              <p className="text-xs text-slate-500 mt-1.5 font-sans">100%ローカル稼働。ブラウザのTensorFlow.jsによる自己完結ディープラーニング予測機</p>
+            </div>
+            <div className="flex gap-2 font-mono">
+              <button onClick={() => setShowGuide(true)} className="bg-blue-50 text-blue-650 hover:bg-blue-105 border px-3 py-1.5 rounded-xl font-sans font-bold text-xs flex items-center gap-1">
+                <Icons.HelpCircle /> 操作方法
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            
+            {/* Left Col (Prediction Dashboard & Map) */}
+            <div className="xl:col-span-7 flex flex-col gap-6">
+              
+              {/* Prediction Visual Card */}
+              <div className="bg-white border text-slate-800 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                <div className="flex justify-between items-center border-b pb-3.5 border-slate-100">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-600"><Icons.Sparkles /></span>
+                    <h3 className="font-bold text-sm">AI到着予測 (ETA) 補正出力</h3>
+                  </div>
+                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-mono text-slate-500">Inference: {prediction.inferenceTimeMs} ms</span>
+                </div>
+
+                <div className="py-3 flex flex-col gap-1">
+                  <span className="text-[11px] text-slate-550 font-bold uppercase tracking-wider block">予測到着時刻</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-black bg-gradient-to-r from-blue-600 to-indigo-650 bg-clip-text text-transparent">{formatETA(prediction.predictedMinutes)}</span>
+                    <span className="text-sm font-bold text-slate-700">( 残り約<span className="text-xl text-blue-600 px-1 font-mono font-extrabold">{prediction.predictedMinutes.toFixed(1)}</span>分 )</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-3.5 border-t border-slate-100 font-mono text-xs">
+                  <div className="bg-slate-50 border p-2.5 rounded-xl">
+                    <span className="text-[10px] text-slate-400 block font-sans">残り距離</span>
+                    <span className="text-sm font-bold text-slate-800">{remD.toFixed(2)} km</span>
+                  </div>
+                  <div className="bg-slate-50 border p-2.5 rounded-xl">
+                    <span className="text-[10px] text-slate-400 block font-sans">車速</span>
+                    <span className="text-sm font-bold text-blue-600">{Math.round(currentSpeed)} km/h</span>
+                  </div>
+                  <div className="bg-slate-50 border p-2.5 rounded-xl">
+                    <span className="text-[10px] text-slate-400 block font-sans">検証時間帯</span>
+                    <span className="text-sm font-bold text-indigo-600">{currentHour}:00台</span>
+                  </div>
+                </div>
+
+                {/* Debug verify hour slider */}
+                <div className="bg-indigo-50/50 border border-indigo-100/50 p-3 rounded-xl mt-3 flex flex-col gap-1.5">
+                  <div className="flex justify-between text-xs text-indigo-955 font-bold">
+                    <span className="flex items-center gap-1 font-sans"><Icons.Clock className="w-3.5 h-3.5 text-indigo-500" /> ラッシュ時AI推論特性のデバッグ検証</span>
+                    <span className="font-mono">{currentHour} 時台</span>
+                  </div>
+                  <input type="range" min="0" max="23" value={currentHour} onChange={e => setCurrentHour(Number(e.target.value))} className="w-full accent-indigo-600" />
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">スライダーを朝（7〜9時）や夕方（17〜19時）に動かすと、再学習成果の非線形変化（ラッシュ遅延）をリアルタイムにシミュレートできます。</p>
+                </div>
+              </div>
+
+              {/* Leaflet Map Card */}
+              <div className="bg-white rounded-2xl p-4 border border-slate-200/85 shadow-sm flex flex-col gap-4">
+                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-500"><Icons.Layers /></span>
+                    <h4 className="font-bold text-slate-800 text-sm">路線リアルタイムマップ</h4>
+                  </div>
+                  <div className="flex gap-1.5 font-sans">
+                    <button onClick={() => setSelectionMode("start")} className={`text-[10px] font-bold px-2 py-1 rounded border transition ${selectionMode === "start" ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-slate-105 hover:bg-slate-200"}`}>出発ピン</button>
+                    <button onClick={() => setSelectionMode("end")} className={`text-[10px] font-bold px-2 py-1 rounded border transition ${selectionMode === "end" ? "bg-rose-50 text-rose-700 border-rose-300" : "bg-slate-105 hover:bg-slate-200"}`}>目的ピン</button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 p-2 bg-slate-50 rounded-xl text-xs flex-wrap">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                    <span>同期間隔:</span>
+                    <select value={gpsInterval} onChange={e => setGpsInterval(Number(e.target.value))} className="bg-white border rounded p-0.5 text-slate-800 text-xs font-bold">
+                      <option value={5}>5秒</option>
+                      <option value={15}>15秒</option>
+                      <option value={30}>30秒</option>
+                    </select>
+                  </div>
+                </div>
+
+                <MapContainer
+                  startLat={startLat} startLng={startLng}
+                  endLat={endLat} endLng={endLng}
+                  currentLat={currentLat} currentLng={currentLng}
+                  onSelectLocation={handleSelectLocation}
+                  selectionMode={selectionMode}
+                  deviceId={deviceId}
+                />
+              </div>
+
+              {/* デバイス・車両設定 (シミュレーターの代わり) */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col gap-4">
+                <div className="flex items-center justify-between border-b pb-3 border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-sky-50 text-sky-600 p-2 rounded-xl border"><Icons.Activity /></div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-sm">追跡デバイス（車両）設定</h4>
+                      <p className="text-[11px] text-slate-500">位置情報を取得する対象のGPS端末ID</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-sky-600 bg-sky-50 border px-2.5 py-0.5 rounded-full">現在: {deviceId}</span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-bold text-slate-700">登録済み車両から選択</span>
+                    <select 
+                      value={appConfig.devices.includes(deviceId) ? deviceId : ""} 
+                      onChange={e => setDeviceId(e.target.value)} 
+                      className="p-2 bg-slate-50 border rounded-lg cursor-pointer"
+                    >
+                      <option value="" disabled>-- 選択してください --</option>
+                      {appConfig.devices.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-bold text-slate-700">手動入力（臨時デバイスなど）</span>
+                    <input 
+                      type="text" 
+                      placeholder="デバイスIDを入力" 
+                      value={deviceId} 
+                      onChange={e => setDeviceId(e.target.value)} 
+                      className="p-2 bg-slate-50 border rounded-lg"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Col: Configurations */}
+            <div className="xl:col-span-5 flex flex-col gap-6">
+              
+              {/* Route manual Settings */}
+              <div className="bg-white rounded-2xl p-5 border shadow-sm flex flex-col gap-4">
+                <div className="flex items-center gap-2 border-b pb-3 border-slate-100">
+                  <div className="text-blue-600"><Icons.MapPin /></div>
+                  <h4 className="font-bold text-slate-800 text-sm">ルート座標設定</h4>
+                </div>
+
+                <div className="flex bg-slate-50 p-1.5 rounded-lg border font-mono justify-between text-xs font-bold select-none text-slate-600">
+                  <label className="flex-1 text-center py-1 cursor-pointer"><input type="radio" checked={routeMode === "list"} onChange={() => setRouteMode("list")} className="mr-1 shadow-sm"/>リスト選択</label>
+                  <label className="flex-1 text-center py-1 cursor-pointer"><input type="radio" checked={routeMode === "manual"} onChange={() => setRouteMode("manual")} className="mr-1 shadow-sm"/>手動座標</label>
+                  <label className="flex-1 text-center py-1 cursor-pointer"><input type="radio" checked={routeMode === "db"} onChange={() => setRouteMode("db")} className="mr-1 shadow-sm"/>DB復元</label>
+                </div>
+
+                {routeMode === "list" ? (
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-700">出発地点</span>
+                      <select value={appConfig.locations.find(l => Math.abs(l.lat - startLat) < 0.001)?.name || ""} onChange={e => {
+                        const hit = appConfig.locations.find(l => l.name === e.target.value);
+                        if (hit) { setStartLat(hit.lat); setStartLng(hit.lng); setCurrentLat(hit.lat); setCurrentLng(hit.lng); setFSLat(hit.lat.toString()); setFSLng(hit.lng.toString()); }
+                      }} className="p-2 bg-slate-50 border rounded-lg cursor-pointer">
+                        <option value="">-- 出発地 --</option>
+                        {appConfig.locations.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-slate-700">目的地点</span>
+                      <select value={appConfig.locations.find(l => Math.abs(l.lat - endLat) < 0.001)?.name || ""} onChange={e => {
+                        const hit = appConfig.locations.find(l => l.name === e.target.value);
+                        if (hit) { setEndLat(hit.lat); setEndLng(hit.lng); setFELat(hit.lat.toString()); setFELng(hit.lng.toString()); }
+                      }} className="p-2 bg-slate-50 border rounded-lg cursor-pointer">
+                        <option value="">-- 到着目的地 --</option>
+                        {appConfig.locations.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ) : routeMode === "manual" ? (
+                  <div className="flex flex-col gap-3 text-xs font-mono">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="text" placeholder="出発緯度" value={fSLat} onChange={e => setFSLat(e.target.value)} className="p-2 border rounded-lg"/>
+                      <input type="text" placeholder="出発経度" value={fSLng} onChange={e => setFSLng(e.target.value)} className="p-2 border rounded-lg"/>
+                      <input type="text" placeholder="目的緯度" value={fELat} onChange={e => setFELat(e.target.value)} className="p-2 border rounded-lg"/>
+                      <input type="text" placeholder="目的経度" value={fELng} onChange={e => setFELng(e.target.value)} className="p-2 border rounded-lg"/>
+                    </div>
+                    <button onClick={handleApplyManual} className="p-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-center font-sans tracking-wide">座標設定をルートに適用</button>
+                  </div>
+                ) : (
+                  <button onClick={handleRestoreDB} className="p-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-center text-xs">DB最後のGPS座標から一瞬で復旧復元</button>
+                )}
+              </div>
+
+              {/* Supabase configurations settings component */}
+              <SupabaseConfigComponent isConnected="{connected}"/>
+
+              {/* Neural network Deep learning component */}
+              <ModelTrainer
+                onModelStatusChange={s => setModelState(s.state)}
+                triggerPrediction={triggerPrediction}
+                trainingSamplesCount={samples}
+                setTrainingSamplesCount={setSamples}
+              />
+            </div>
+          </div>
+
+          {/* Guide Modal Operation Manual Dialog */}
+          {showGuide && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[2500] p-4 text-left">
+              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border flex flex-col p-6 animate-fade-in text-slate-800 relative select-none">
+                <div className="flex justify-between items-center pb-3 border-b border-indigo-50">
+                  <h3 className="font-extrabold text-lg text-slate-900">到着予測 AI App ユーザー操作ガイド</h3>
+                  <button onClick={() => setShowGuide(false)} className="text-slate-400 font-mono text-sm">✕</button>
+                </div>
+                <div className="py-4 flex flex-col gap-3 text-xs leading-relaxed max-h-[400px] overflow-y-auto">
+                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border">★ 外部API（Google Maps等）を介さずブラウザローカルだけで機械学習によるETA算出を完結します。</div>
+                  <p><b>1. GPSルートの設定:</b> 右の「ルート設定」で駅や工場を選ぶか、地図上のピン打ち機能で座標を選択します。</p>
+                  <p><b>2. 疑似走行を開始:</b> 「走行開始(出発)」ボタンを押すと15倍速を想定して車速とGPSログの書き出しが始まります。速度をドラッグするとその速度での時間を再学習用に作れます。</p>
+                  <p><b>3. AIモデルの学習:</b> 右下の「再学習の実行」を押すと、それまでの走行実績を機械がその場で学習(ミニバックプロパゲーション演算)し、信号待ち・朝夕ラッシュの複雑な遅延の重みを習得します。</p>
+                  <p><b>4. 非線形性の検証:</b> 学習完了後、ETAパネル（左上）の「ラッシュ特性のデバッグスライダー」を朝(8時台)や夕方(18時台)に動かします。AIが単純な割り算を超えて、朝夕のラッシュ時間独自の遅れを加算算出しているのが確認できます。</p>
+                </div>
+                <button onClick={() => setShowGuide(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-center shadow-sm">了解しました</button>
+              </div>
+            </div>
+          )}
+
+          {/* Completion Alerts Toast */}
+          {tripAlert && (
+            <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center z-[3000] p-4 select-none">
+              <div className="bg-white rounded-2xl text-center p-6 border max-w-sm w-full flex flex-col gap-4 animate-bounce">
+                <span className="text-3xl">🎉</span>
+                <h4 className="font-black text-slate-900 text-lg">目的地（ゴール）に到着しました！</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-mono">
+                  走行距離: {tripAlert.dist} km<br />
+                  実稼働所要時間: {tripAlert.actual} 分
+                </p>
+                <p className="text-[11px] text-indigo-650 bg-indigo-50 border p-2.5 rounded-lg">今回の走行条件が、今後の時間予測モデルを微調整するためのデータ実績としてブラウザ学習ハブへ自動記憶されました！</p>
+                <button onClick={() => setTripAlert(null)} className="bg-blue-650 text-white font-bold p-2 rounded-xl text-sm">閉じる</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // mount React Element
+    const rootEl = ReactDOM.createRoot(document.getElementById('root'));
+    rootEl.render(<App />);
+
+  </script>
+</body>
+</html>
