@@ -14,9 +14,9 @@
     { "name": "ジェイテクト奈良工場", "lat": 34.5095, "lng": 135.7836 }
   ],
   "devices": [
-    "BUS-JT-9024",
-    "BUS-JT-1102",
-    "BUS-JT-3341",
-    "test1"
+    "test1",
+    "test2",
+    "test3",
+    "test4"
   ]
 }

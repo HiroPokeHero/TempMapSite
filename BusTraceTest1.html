@@ -286,15 +286,26 @@
           if (!window.supabase) {
             return { success: false, message: "Supabase SDKが準備されていません。" };
           }
-          const tempClient = window.supabase.createClient(url, anonKey);
-          const { error } = await tempClient.from("gps_logs").select("*").limit(1);
+          if (!this.client) {
+            this.client = window.supabase.createClient(url, anonKey);
+          }
+    
+          const { error } = await this.client.from("gps_logs").select("*").limit(1);
           
-          this.client = tempClient;
+          if (error) {
+            console.error("Supabase 接続テストエラー:", error);
+            return { success: false, message: `DBアクセス拒否: ${error.message}` };
+          }
+
           this.url = url;
           this.anonKey = anonKey;
           this.isConnected = true;
-          localStorage.setItem("eta_supabase_url", url);
-          localStorage.setItem("eta_supabase_key", anonKey);
+          try {
+            localStorage.setItem("eta_supabase_url", url);
+            localStorage.setItem("eta_supabase_key", anonKey);
+          } catch (storageErr) {
+            console.warn("ブラウザのセキュリティ設定により設定の保存がスキップされました", storageErr);
+          }
 
           return { success: true, message: "Supabaseと接続＆自動同期を開始しました！" };
         } catch (e) {
@@ -337,26 +348,33 @@
       }
 
       async getGPSLogs(deviceId = null) {
-        if (this.isConnected && this.client) {
+        if (this.client) { 
           try {
             let query = this.client.from("gps_logs").select("*").order("created_at", { ascending: false }).limit(100);
             
-            // ▼追加：deviceIdが指定されていれば、そのIDのデータだけに絞り込む
             if (deviceId) {
               query = query.eq("device_id", deviceId);
             }
             
-            const { data } = await query;
-            if (data) return data.map(r => ({
+            const { data, error } = await query;
+            
+            if (error) {
+              console.error("Supabase データ取得エラー:", error);
+            }
+            
+            if (data && data.length > 0) return data.map(r => ({
               id: r.id,
-              created_at: r.created_at,
+              created_at: r.created_at, // ← これも必要なので残します
+              measured_at: r.measured_at,
               latitude: r.latitude > 180 ? r.latitude / 1000000 : r.latitude,
               longitude: r.longitude > 180 ? r.longitude / 1000000 : r.longitude,
               speed_kmh: r.speed ? r.speed / 100 : 0,
               target_lat: 34.9517,
               target_lng: 137.1625,
             }));
-          } catch (e) {}
+          } catch (e) {
+            console.error("Supabase 通信フェッチエラー:", e);
+          }
         }
         return this.localLogs;
       }
@@ -846,6 +864,9 @@
       const [currentLat, setCurrentLat] = React.useState(34.951854);
       const [currentLng, setCurrentLng] = React.useState(137.166800);
       const [currentSpeed, setCurrentSpeed] = React.useState(60);
+      const [measuredTime, setMeasuredTime] = React.useState("未取得");
+      const [dbWriteTime, setDbWriteTime] = React.useState("未取得");
+      const [freshness, setFreshness] = React.useState("計算中...");
 
       const [gpsInterval, setGpsInterval] = React.useState(15);
       const [deviceId, setDeviceId] = React.useState("BUS-JT-9024");
@@ -911,6 +932,8 @@
 
       // Supabase GPS polling
       React.useEffect(() => {
+        if (!connected) return;
+
         const syncGps = async () => {
           try {
             const last = await dbService.getLatestGPSLog(deviceId);
@@ -918,15 +941,26 @@
               setCurrentLat(last.latitude);
               setCurrentLng(last.longitude);
               setCurrentSpeed(last.speed_kmh);
-              // ▼削除: 取得したデータで画面のデバイス名を強制上書きする処理を消す（画面の選択を優先するため）
-              // if (last.device_id) setDeviceId(last.device_id);
+              
+              setMeasuredTime(last.measured_at ? last.measured_at : "データなし");
+
+              if (last.created_at) {
+                const jstDate = new Date(last.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+                setDbWriteTime(jstDate);
+
+                const logTime = new Date(last.created_at).getTime();
+                const now = Date.now();
+                const diffMins = Math.floor((now - logTime) / 60000);
+                setFreshness(diffMins < 1 ? "1分未満" : `${diffMins}分前のデータ`);
+              } else {
+                setDbWriteTime("データなし");
+              }
             }
           } catch(e){}
         };
         syncGps();
         const timer = setInterval(syncGps, gpsInterval * 1000);
         return () => clearInterval(timer);
-      // ▼修正: 監視リストの最後に `deviceId` を追加（デバイス名が変わったらタイマーを再起動させる）
       }, [gpsInterval, connected, deviceId]);
 
       // 設定ファイル読み込み中はローディング画面を表示
@@ -1033,12 +1067,45 @@
                 </div>
               </div>
 
+              <div className="bg-slate-900 text-white rounded-2xl p-5 border border-slate-800 shadow-md flex flex-col gap-3 relative overflow-hidden">
+                <div className="flex items-center gap-2 border-b border-slate-700 pb-2.5">
+                  <span className="text-emerald-400"><Icons.Activity /></span>
+                  <h3 className="font-bold text-sm tracking-wider">現在地・データ受信ステータス</h3>
+                  <span className="ml-auto text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-1 rounded-full font-mono animate-pulse">LIVE</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
+                  <div className="flex flex-col gap-1 bg-black/40 p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 text-[10px]">計測時間 (JST)</span>
+                    <span className="font-bold text-sm text-slate-100">{measuredTime}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 bg-black/40 p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 text-[10px]">DB書込時間 (JST変換済)</span>
+                    <span className="font-bold text-sm text-emerald-300">{dbWriteTime}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 bg-black/40 p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 text-[10px]">緯度 (Latitude)</span>
+                    <span className="font-bold text-sm text-slate-100">{currentLat.toFixed(6)}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 bg-black/40 p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 text-[10px]">経度 (Longitude)</span>
+                    <span className="font-bold text-sm text-slate-100">{currentLng.toFixed(6)}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Leaflet Map Card */}
               <div className="bg-white rounded-2xl p-4 border border-slate-200/85 shadow-sm flex flex-col gap-4">
                 <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-blue-500"><Icons.Layers /></span>
-                    <h4 className="font-bold text-slate-800 text-sm">路線リアルタイムマップ</h4>
+                      <h4 className="font-bold text-slate-800 text-sm flex items-center">
+                      路線リアルタイムマップ
+                      {/* ▼追加：タイトルの横にデータ鮮度を表示 */}
+                      <span className="ml-2 text-[11px] font-normal text-slate-500 font-mono tracking-tighter">
+                        (データ鮮度：{freshness})
+                      </span>
+                    </h4>
                   </div>
                   <div className="flex gap-1.5 font-sans">
                     <button onClick={() => setSelectionMode("start")} className={`text-[10px] font-bold px-2 py-1 rounded border transition ${selectionMode === "start" ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-slate-105 hover:bg-slate-200"}`}>出発ピン</button>
@@ -1162,7 +1229,7 @@
               </div>
 
               {/* Supabase configurations settings component */}
-              <SupabaseConfigComponent isConnected="{connected}"/>
+              <SupabaseConfigComponent isConnected={connected}/>
 
               {/* Neural network Deep learning component */}
               <ModelTrainer
