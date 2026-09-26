@@ -942,7 +942,32 @@
               setCurrentLng(last.longitude);
               setCurrentSpeed(last.speed_kmh);
               
-              setMeasuredTime(last.measured_at ? last.measured_at : "データなし");
+              if (last.measured_at) {
+                // DBからの日時文字列を分解・整形
+                // ミリ秒（.000000）、タイムゾーン（+00:00）情報を削除
+                const cleanRaw = last.measured_at.split('.')[0].split('+')[0]; // '2026-09-24T19:44:16'
+                
+                // 日付と時間に分割
+                const dateTimeParts = cleanRaw.split('T'); // ['2026-09-24', '19:44:16']
+                
+                // 日付部分をハイフン（-）で分解して整形
+                const dateParts = dateTimeParts[0].split('-'); // ['2026', '09', '24']
+                const year = dateParts[0];
+                const month = parseInt(dateParts[1], 10); // 数値に変換して頭の0を削除（例: '09' -> 9）[cite: 5]
+                const day = parseInt(dateParts[2], 10); // （例: '24' -> 24）
+                
+                // 整形した日付部分：'2026/9/24'
+                const datePartFormatted = `${year}/${month}/${day}`; 
+                
+                // 時間部分：'19:44:16'
+                const timePartFormatted = dateTimeParts[1]; 
+
+                // `yyyy/m/d h:mm:ss` の形式に整形してセット
+                const formattedMeasuredDateTime = `${datePartFormatted} ${timePartFormatted}`;
+                setMeasuredTime(formattedMeasuredDateTime);
+              } else {
+                setMeasuredTime("データなし");
+              }
 
               if (last.created_at) {
                 const jstDate = new Date(last.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
