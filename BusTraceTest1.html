@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>到着時間予測 AI App - Standalone Edition</title>
+  <title>到着時間予測 AI App - Phase 5</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Core CDNs -->
@@ -30,6 +30,9 @@
             violet: {
               455: '#c084fc',
               955: '#4c1d95',
+            },
+            rose: {
+              955: '#4c0519',
             }
           }
         }
@@ -97,101 +100,24 @@
 
     // --- REUSABLE INLINE SVG ICONS ---
     const Icons = {
-      Navigation: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <polygon points="3 11 22 2 13 21 11 13 3 11" />
-        </svg>
-      ),
-      MapPin: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-      ),
-      Clock: ({ className }) => (
-        <svg className={className || "w-5 h-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-        </svg>
-      ),
-      Gauge: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2z" />
-          <path d="m19 5-3.5 3.5" />
-          <circle cx="12" cy="12" r="1.5" />
-        </svg>
-      ),
-      Compass: ({ className }) => (
-        <svg className={className || "w-5 h-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-        </svg>
-      ),
-      Sparkles: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-        </svg>
-      ),
-      Info: () => (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-      ),
-      Calendar: () => (
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
-      Layers: () => (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <polygon points="12 2 2 7 12 12 22 7 12 2" /><polygon points="2 17 12 22 22 17" /><polygon points="2 12 12 17 22 12" />
-        </svg>
-      ),
-      Database: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
-        </svg>
-      ),
-      Activity: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        </svg>
-      ),
-      HelpCircle: () => (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /><circle cx="12" cy="12" r="10" />
-        </svg>
-      ),
-      Brain: () => (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" />
-          <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" />
-        </svg>
-      ),
-      Play: () => (
-        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-          <polygon points="5 3 19 12 5 21 5 3" />
-        </svg>
-      ),
-      Square: () => (
-        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-          <rect x="4" y="4" width="16" height="16" rx="2" />
-        </svg>
-      ),
-      ArrowsRight: () => (
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <polyline points="13 5 20 12 13 19" /><line x1="4" y1="12" x2="20" y2="12" />
-        </svg>
-      ),
-      Check: () => (
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ),
-      Flame: () => (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5z" />
-        </svg>
-      ),
+      Navigation: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>,
+      MapPin: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
+      Clock: ({ className }) => <svg className={className || "w-5 h-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
+      Gauge: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2z" /><path d="m19 5-3.5 3.5" /><circle cx="12" cy="12" r="1.5" /></svg>,
+      Compass: ({ className }) => <svg className={className || "w-5 h-5"} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></svg>,
+      Sparkles: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>,
+      Info: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>,
+      Calendar: () => <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>,
+      Layers: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polygon points="2 17 12 22 22 17" /><polygon points="2 12 12 17 22 12" /></svg>,
+      Database: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" /></svg>,
+      Activity: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>,
+      HelpCircle: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /><circle cx="12" cy="12" r="10" /></svg>,
+      Brain: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-4.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z" /><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-4.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z" /></svg>,
+      Play: () => <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" /></svg>,
+      Square: () => <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>,
+      ArrowsRight: () => <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polyline points="13 5 20 12 13 19" /><line x1="4" y1="12" x2="20" y2="12" /></svg>,
+      Check: () => <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>,
+      Flame: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5z" /></svg>,
     };
 
     // --- GEOLOCATION UTILS ---
@@ -364,7 +290,7 @@
             
             if (data && data.length > 0) return data.map(r => ({
               id: r.id,
-              created_at: r.created_at, // ← これも必要なので残します
+              created_at: r.created_at,
               measured_at: r.measured_at,
               latitude: r.latitude > 180 ? r.latitude / 1000000 : r.latitude,
               longitude: r.longitude > 180 ? r.longitude / 1000000 : r.longitude,
@@ -687,33 +613,9 @@
       );
     }
 
-// --- VIEW COMPONENT: SUPABASE CONFIG ---
-    function SupabaseConfigComponent({ isConnected }) {
-      return (
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b pb-3 border-slate-100 flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <div className="bg-emerald-50 text-emerald-600 p-2 rounded-xl"><Icons.Database /></div>
-              <div>
-                <h4 className="font-bold text-slate-800 text-sm font-sans">Supabase 接続ステータス</h4>
-                <p className="text-[11px] text-slate-500">外部設定ファイル(config.json)による自動同期</p>
-              </div>
-            </div>
-            {isConnected ? (
-              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border px-2.5 py-0.5 rounded-full">クラウド同期中</span>
-            ) : <span className="text-[11px] bg-slate-100 text-slate-500 px-2.5 py-0.5 rounded-full">未接続・ローカルモード</span>}
-          </div>
-          <div className="text-[10px] text-slate-500 font-sans leading-relaxed">
-            {isConnected
-              ? "config.json の設定を用いてSupabaseと正常にデータトンネルを確立しています。"
-              : "クラウドに接続されていません。ローカルブラウザストレージをDB代理として動作させます。"}
-          </div>
-        </div>
-      );
-    }
-
-    // --- VIEW COMPONENT: MODEL TRAINER ---
+    // --- VIEW COMPONENT: MODEL TRAINER (Collapsible) ---
     function ModelTrainer({ onModelStatusChange, triggerPrediction, trainingSamplesCount, setTrainingSamplesCount }) {
+      const [isExpanded, setIsExpanded] = React.useState(false); // ★デフォルト非表示
       const [epochs, setEpochs] = React.useState(60);
       const [lr, setLr] = React.useState(0.015);
       const [list, setList] = React.useState([]);
@@ -773,58 +675,60 @@
 
       return (
         <div className="bg-slate-900 text-slate-100 rounded-2xl p-5 border border-slate-800 shadow flex flex-col gap-4">
-          <div className="flex justify-between items-center border-b pb-3 border-slate-800 flex-wrap gap-2">
+          <div className="flex justify-between items-center border-b pb-3 border-slate-800 flex-wrap gap-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
             <div className="flex items-center gap-2">
               <div className="bg-violet-955 text-violet-400 p-2 rounded-xl"><Icons.Brain /></div>
               <div>
-                <h4 className="font-bold text-slate-200 text-sm">自律学習型ディープラーニング予測器</h4>
+                <h4 className="font-bold text-slate-200 text-sm hover:text-violet-400 transition-colors">自律学習型ディープラーニング予測器</h4>
                 <p className="text-[10px] text-slate-400">ニューラルネットワークが勾配降下法をブラウザ上で並列計算します</p>
               </div>
             </div>
-            <span className="text-[11px] font-mono bg-black text-slate-400 px-2 py-0.5 rounded border border-slate-800">実績走行ログ: {list.length}件</span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-5 bg-black p-4 rounded-xl border border-slate-800 flex flex-col gap-4 justify-between font-mono text-xs">
-              <div className="flex flex-col gap-3">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ハイパーパラメータ</span>
-                
-                <div>
-                  <div className="flex justify-between text-[11px]"><span>エポック数: {epochs}回</span></div>
-                  <input type="range" min="10" max="150" step="10" value={epochs} onChange={e => setEpochs(Number(e.target.value))} disabled={status.state === "training"} className="w-full accent-violet-500" />
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-[11px]"><span>学習率 (Learning Rate): {lr}</span></div>
-                  <input type="range" min="0.002" max="0.04" step="0.002" value={lr} onChange={e => setLr(Number(e.target.value))} disabled={status.state === "training"} className="w-full accent-violet-500" />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2 pt-3 border-t border-slate-850">
-                <div className="flex gap-1">
-                  <button onClick={handleAddPresets} disabled={status.state === "training"} className="flex-1 bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg text-[10px] font-bold">疑似実績蓄積 (+30件)</button>
-                  <button onClick={handleReset} disabled={status.state === "training"} className="bg-slate-800 hover:bg-red-955 p-1.5 rounded-lg text-[10px] text-red-400 font-bold">リセット</button>
-                </div>
-                <button onClick={handleTrain} disabled={status.state === "training" || list.length === 0} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold p-2.5 rounded-xl text-center">
-                  {status.state === "training" ? "学習進行中..." : "AIモデルの再学習を実行"}
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-7 bg-black/50 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 min-h-[160px]">
-              <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">自律誤差収束モニター (Loss)</span>
-              {status.lossHistory.length > 0 ? (
-                <LossChart data={status.lossHistory} />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 text-[11px] font-sans">
-                  データを入れたあと、再学習を実行するとロス収束グラフが動的に描かれます。
-                </div>
-              )}
-              <div className="text-[10px] font-mono text-slate-500 border-t border-slate-900 pt-1.5 truncate">
-                Status: {status.msg}
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-mono bg-black text-slate-400 px-2 py-0.5 rounded border border-slate-800">実績走行ログ: {list.length}件</span>
+              <span className="text-slate-400 text-xs font-bold">{isExpanded ? "▲ 閉じる" : "▼ 展開する"}</span>
             </div>
           </div>
+
+          {isExpanded && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2 animate-fade-in">
+              <div className="lg:col-span-5 bg-black p-4 rounded-xl border border-slate-800 flex flex-col gap-4 justify-between font-mono text-xs">
+                <div className="flex flex-col gap-3">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ハイパーパラメータ</span>
+                  <div>
+                    <div className="flex justify-between text-[11px]"><span>エポック数: {epochs}回</span></div>
+                    <input type="range" min="10" max="150" step="10" value={epochs} onChange={e => setEpochs(Number(e.target.value))} disabled={status.state === "training"} className="w-full accent-violet-500" />
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-[11px]"><span>学習率 (Learning Rate): {lr}</span></div>
+                    <input type="range" min="0.002" max="0.04" step="0.002" value={lr} onChange={e => setLr(Number(e.target.value))} disabled={status.state === "training"} className="w-full accent-violet-500" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 pt-3 border-t border-slate-850">
+                  <div className="flex gap-1">
+                    <button onClick={handleAddPresets} disabled={status.state === "training"} className="flex-1 bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg text-[10px] font-bold">疑似実績蓄積 (+30件)</button>
+                    <button onClick={handleReset} disabled={status.state === "training"} className="bg-slate-800 hover:bg-red-955 p-1.5 rounded-lg text-[10px] text-red-400 font-bold">リセット</button>
+                  </div>
+                  <button onClick={handleTrain} disabled={status.state === "training" || list.length === 0} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold p-2.5 rounded-xl text-center">
+                    {status.state === "training" ? "学習進行中..." : "AIモデルの再学習を実行"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-7 bg-black/50 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 min-h-[160px]">
+                <span className="text-[10px] text-slate-500 font-mono tracking-wider font-bold">自律誤差収束モニター (Loss)</span>
+                {status.lossHistory.length > 0 ? (
+                  <LossChart data={status.lossHistory} />
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 text-[11px] font-sans">
+                    データを入れたあと、再学習を実行するとロス収束グラフが動的に描かれます。
+                  </div>
+                )}
+                <div className="text-[10px] font-mono text-slate-500 border-t border-slate-900 pt-1.5 truncate">
+                  Status: {status.msg}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -885,6 +789,7 @@
       
       const [currentHour, setCurrentHour] = React.useState(new Date().getHours());
       const [prediction, setPrediction] = React.useState({ predictedMinutes: 0, mathematicalMinutes: 0, inferenceTimeMs: 0 });
+      const [showETA, setShowETA] = React.useState(false); // ★追加：デフォルト非表示
       const [showGuide, setShowGuide] = React.useState(false);
       const [tripAlert, setTripAlert] = React.useState(null);
 
@@ -943,26 +848,14 @@
               setCurrentSpeed(last.speed_kmh);
               
               if (last.measured_at) {
-                // DBからの日時文字列を分解・整形
-                // ミリ秒（.000000）、タイムゾーン（+00:00）情報を削除
-                const cleanRaw = last.measured_at.split('.')[0].split('+')[0]; // '2026-09-24T19:44:16'
-                
-                // 日付と時間に分割
-                const dateTimeParts = cleanRaw.split('T'); // ['2026-09-24', '19:44:16']
-                
-                // 日付部分をハイフン（-）で分解して整形
-                const dateParts = dateTimeParts[0].split('-'); // ['2026', '09', '24']
+                const cleanRaw = last.measured_at.split('.')[0].split('+')[0];
+                const dateTimeParts = cleanRaw.split('T');
+                const dateParts = dateTimeParts[0].split('-');
                 const year = dateParts[0];
-                const month = parseInt(dateParts[1], 10); // 数値に変換して頭の0を削除（例: '09' -> 9）[cite: 5]
-                const day = parseInt(dateParts[2], 10); // （例: '24' -> 24）
-                
-                // 整形した日付部分：'2026/9/24'
+                const month = parseInt(dateParts[1], 10);
+                const day = parseInt(dateParts[2], 10);
                 const datePartFormatted = `${year}/${month}/${day}`; 
-                
-                // 時間部分：'19:44:16'
                 const timePartFormatted = dateTimeParts[1]; 
-
-                // `yyyy/m/d h:mm:ss` の形式に整形してセット
                 const formattedMeasuredDateTime = `${datePartFormatted} ${timePartFormatted}`;
                 setMeasuredTime(formattedMeasuredDateTime);
               } else {
@@ -1043,60 +936,104 @@
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            
-            {/* Left Col (Prediction Dashboard & Map) */}
-            <div className="xl:col-span-7 flex flex-col gap-6">
-              
-              {/* Prediction Visual Card */}
-              <div className="bg-white border text-slate-800 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-                <div className="flex justify-between items-center border-b pb-3.5 border-slate-100">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-indigo-600"><Icons.Sparkles /></span>
-                    <h3 className="font-bold text-sm">AI到着予測 (ETA) 補正出力</h3>
-                  </div>
-                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-mono text-slate-500">Inference: {prediction.inferenceTimeMs} ms</span>
-                </div>
-
-                <div className="py-3 flex flex-col gap-1">
-                  <span className="text-[11px] text-slate-550 font-bold uppercase tracking-wider block">予測到着時刻</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl sm:text-5xl font-black bg-gradient-to-r from-blue-600 to-indigo-650 bg-clip-text text-transparent">{formatETA(prediction.predictedMinutes)}</span>
-                    <span className="text-sm font-bold text-slate-700">( 残り約<span className="text-xl text-blue-600 px-1 font-mono font-extrabold">{prediction.predictedMinutes.toFixed(1)}</span>分 )</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 pt-3.5 border-t border-slate-100 font-mono text-xs">
-                  <div className="bg-slate-50 border p-2.5 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-sans">残り距離</span>
-                    <span className="text-sm font-bold text-slate-800">{remD.toFixed(2)} km</span>
-                  </div>
-                  <div className="bg-slate-50 border p-2.5 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-sans">車速</span>
-                    <span className="text-sm font-bold text-blue-600">{Math.round(currentSpeed)} km/h</span>
-                  </div>
-                  <div className="bg-slate-50 border p-2.5 rounded-xl">
-                    <span className="text-[10px] text-slate-400 block font-sans">検証時間帯</span>
-                    <span className="text-sm font-bold text-indigo-600">{currentHour}:00台</span>
-                  </div>
-                </div>
-
-                {/* Debug verify hour slider */}
-                <div className="bg-indigo-50/50 border border-indigo-100/50 p-3 rounded-xl mt-3 flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs text-indigo-955 font-bold">
-                    <span className="flex items-center gap-1 font-sans"><Icons.Clock className="w-3.5 h-3.5 text-indigo-500" /> ラッシュ時AI推論特性のデバッグ検証</span>
-                    <span className="font-mono">{currentHour} 時台</span>
-                  </div>
-                  <input type="range" min="0" max="23" value={currentHour} onChange={e => setCurrentHour(Number(e.target.value))} className="w-full accent-indigo-600" />
-                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">スライダーを朝（7〜9時）や夕方（17〜19時）に動かすと、再学習成果の非線形変化（ラッシュ遅延）をリアルタイムにシミュレートできます。</p>
+          {/* ▼ 移動：デバイス設定パネルを全幅で一番上に配置 */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b pb-3 border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="bg-sky-50 text-sky-600 p-2 rounded-xl border"><Icons.Activity /></div>
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">追跡デバイス（車両）設定</h4>
+                  <p className="text-[11px] text-slate-500">位置情報を取得する対象のGPS端末ID（変更すると自動で最新データを取得します）</p>
                 </div>
               </div>
+              <span className="text-[11px] font-mono font-bold text-sky-600 bg-sky-50 border px-2.5 py-0.5 rounded-full">現在: {deviceId}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+              <div className="flex flex-col gap-1.5">
+                <span className="font-bold text-slate-700">登録済み車両から選択</span>
+                <select 
+                  value={appConfig.devices.includes(deviceId) ? deviceId : ""} 
+                  onChange={e => setDeviceId(e.target.value)} 
+                  className="p-2 bg-slate-50 border rounded-lg cursor-pointer"
+                >
+                  <option value="" disabled>-- 選択してください --</option>
+                  {appConfig.devices.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="font-bold text-slate-700">手動入力（臨時デバイスなど）</span>
+                <input type="text" placeholder="デバイスIDを入力" value={deviceId} onChange={e => setDeviceId(e.target.value)} className="p-2 bg-slate-50 border rounded-lg"/>
+              </div>
+            </div>
+          </div>
 
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            {/* Left Col */}
+            <div className="xl:col-span-7 flex flex-col gap-6">
+              
+              {/* ▼ 修正：Prediction Visual Card (折りたたみ対応) */}
+              <div className="bg-white border text-slate-800 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                <div className="flex justify-between items-center border-b pb-3.5 border-slate-100 cursor-pointer" onClick={() => setShowETA(!showETA)}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-indigo-600"><Icons.Sparkles /></span>
+                    <h3 className="font-bold text-sm hover:text-blue-600 transition-colors">AI到着予測 (ETA) 補正出力</h3>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-mono text-slate-500">Inference: {prediction.inferenceTimeMs} ms</span>
+                    <span className="text-slate-400 text-xs font-bold">{showETA ? "▲ 閉じる" : "▼ 展開する"}</span>
+                  </div>
+                </div>
+
+                {showETA && (
+                  <div className="pt-3 animate-fade-in">
+                    <div className="py-3 flex flex-col gap-1">
+                      <span className="text-[11px] text-slate-550 font-bold uppercase tracking-wider block">予測到着時刻</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl sm:text-5xl font-black bg-gradient-to-r from-blue-600 to-indigo-650 bg-clip-text text-transparent">{formatETA(prediction.predictedMinutes)}</span>
+                        <span className="text-sm font-bold text-slate-700">( 残り約<span className="text-xl text-blue-600 px-1 font-mono font-extrabold">{prediction.predictedMinutes.toFixed(1)}</span>分 )</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 pt-3.5 border-t border-slate-100 font-mono text-xs">
+                      <div className="bg-slate-50 border p-2.5 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block font-sans">残り距離</span>
+                        <span className="text-sm font-bold text-slate-800">{remD.toFixed(2)} km</span>
+                      </div>
+                      <div className="bg-slate-50 border p-2.5 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block font-sans">車速</span>
+                        <span className="text-sm font-bold text-blue-600">{Math.round(currentSpeed)} km/h</span>
+                      </div>
+                      <div className="bg-slate-50 border p-2.5 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block font-sans">検証時間帯</span>
+                        <span className="text-sm font-bold text-indigo-600">{currentHour}:00台</span>
+                      </div>
+                    </div>
+                    <div className="bg-indigo-50/50 border border-indigo-100/50 p-3 rounded-xl mt-3 flex flex-col gap-1.5">
+                      <div className="flex justify-between text-xs text-indigo-955 font-bold">
+                        <span className="flex items-center gap-1 font-sans"><Icons.Clock className="w-3.5 h-3.5 text-indigo-500" /> ラッシュ時AI推論特性のデバッグ検証</span>
+                        <span className="font-mono">{currentHour} 時台</span>
+                      </div>
+                      <input type="range" min="0" max="23" value={currentHour} onChange={e => setCurrentHour(Number(e.target.value))} className="w-full accent-indigo-600" />
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">スライダーを朝（7〜9時）や夕方（17〜19時）に動かすと、再学習成果の非線形変化（ラッシュ遅延）をリアルタイムにシミュレートできます。</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ▼ 修正：Current Location Data Panel (タイトル変更・連動) */}
               <div className="bg-slate-900 text-white rounded-2xl p-5 border border-slate-800 shadow-md flex flex-col gap-3 relative overflow-hidden">
                 <div className="flex items-center gap-2 border-b border-slate-700 pb-2.5">
                   <span className="text-emerald-400"><Icons.Activity /></span>
-                  <h3 className="font-bold text-sm tracking-wider">現在地・データ受信ステータス</h3>
-                  <span className="ml-auto text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-1 rounded-full font-mono animate-pulse">LIVE</span>
+                  <h3 className="font-bold text-sm tracking-wider flex items-center">
+                    現在地最新データ
+                    <span className="ml-2 text-[11px] font-normal text-slate-500 font-mono tracking-tighter">
+                      (データ鮮度：{freshness})
+                    </span>
+                  </h3>
+                  {connected ? (
+                    <span className="ml-auto text-[10px] bg-emerald-955 text-emerald-400 border border-emerald-800 px-2 py-1 rounded-full font-mono animate-pulse">データ受信中</span>
+                  ) : (
+                    <span className="ml-auto text-[10px] bg-rose-955 text-rose-400 border border-rose-800 px-2 py-1 rounded-full font-mono">データ受信失敗</span>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono text-xs">
@@ -1126,7 +1063,6 @@
                     <span className="text-blue-500"><Icons.Layers /></span>
                       <h4 className="font-bold text-slate-800 text-sm flex items-center">
                       路線リアルタイムマップ
-                      {/* ▼追加：タイトルの横にデータ鮮度を表示 */}
                       <span className="ml-2 text-[11px] font-normal text-slate-500 font-mono tracking-tighter">
                         (データ鮮度：{freshness})
                       </span>
@@ -1157,44 +1093,6 @@
                   selectionMode={selectionMode}
                   deviceId={deviceId}
                 />
-              </div>
-
-              {/* デバイス・車両設定 (シミュレーターの代わり) */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b pb-3 border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-sky-50 text-sky-600 p-2 rounded-xl border"><Icons.Activity /></div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-sm">追跡デバイス（車両）設定</h4>
-                      <p className="text-[11px] text-slate-500">位置情報を取得する対象のGPS端末ID</p>
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-mono font-bold text-sky-600 bg-sky-50 border px-2.5 py-0.5 rounded-full">現在: {deviceId}</span>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="font-bold text-slate-700">登録済み車両から選択</span>
-                    <select 
-                      value={appConfig.devices.includes(deviceId) ? deviceId : ""} 
-                      onChange={e => setDeviceId(e.target.value)} 
-                      className="p-2 bg-slate-50 border rounded-lg cursor-pointer"
-                    >
-                      <option value="" disabled>-- 選択してください --</option>
-                      {appConfig.devices.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="font-bold text-slate-700">手動入力（臨時デバイスなど）</span>
-                    <input 
-                      type="text" 
-                      placeholder="デバイスIDを入力" 
-                      value={deviceId} 
-                      onChange={e => setDeviceId(e.target.value)} 
-                      className="p-2 bg-slate-50 border rounded-lg"
-                    />
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1253,9 +1151,6 @@
                 )}
               </div>
 
-              {/* Supabase configurations settings component */}
-              <SupabaseConfigComponent isConnected={connected}/>
-
               {/* Neural network Deep learning component */}
               <ModelTrainer
                 onModelStatusChange={s => setModelState(s.state)}
@@ -1271,11 +1166,11 @@
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[2500] p-4 text-left">
               <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border flex flex-col p-6 animate-fade-in text-slate-800 relative select-none">
                 <div className="flex justify-between items-center pb-3 border-b border-indigo-50">
-                  <h3 className="font-extrabold text-lg text-slate-900">到着予測 AI App ユーザー操作ガイド</h3>
+                  <h3 className="font-extrabold text-lg text-slate-900">到着予測 AI App ユーザー操作ガイド(工事中)</h3>
                   <button onClick={() => setShowGuide(false)} className="text-slate-400 font-mono text-sm">✕</button>
                 </div>
                 <div className="py-4 flex flex-col gap-3 text-xs leading-relaxed max-h-[400px] overflow-y-auto">
-                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border">★ 外部API（Google Maps等）を介さずブラウザローカルだけで機械学習によるETA算出を完結します。</div>
+                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border">現在予測精度がわるいのであまり信用しないでください。</div>
                   <p><b>1. GPSルートの設定:</b> 右の「ルート設定」で駅や工場を選ぶか、地図上のピン打ち機能で座標を選択します。</p>
                   <p><b>2. 疑似走行を開始:</b> 「走行開始(出発)」ボタンを押すと15倍速を想定して車速とGPSログの書き出しが始まります。速度をドラッグするとその速度での時間を再学習用に作れます。</p>
                   <p><b>3. AIモデルの学習:</b> 右下の「再学習の実行」を押すと、それまでの走行実績を機械がその場で学習(ミニバックプロパゲーション演算)し、信号待ち・朝夕ラッシュの複雑な遅延の重みを習得します。</p>
