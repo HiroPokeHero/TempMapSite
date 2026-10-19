@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>到着時間予測 AI App - Phase 6</title>
+  <title>到着時間予測 AI App - Phase 7</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Core CDNs -->
@@ -671,6 +671,7 @@
       
       // App control
       const [connected, setConnected] = React.useState(false);
+      const [lockedTargetDevice, setLockedTargetDevice] = React.useState(null);
       const [activeDeviceId, setActiveDeviceId] = React.useState("検索中...");
       const [manualDeviceId, setManualDeviceId] = React.useState(""); 
       const [showDevMenu, setShowDevMenu] = React.useState(false);
@@ -743,11 +744,11 @@
 
       React.useEffect(() => { triggerPrediction(); }, [currentLat, currentLng, currentSpeed, currentHour, goals, modelState]);
 
-      // Phase 6: Device Freshness & Fallback Polling
+      // Phase 7: ① 探索してロックする処理（起動時・勤務地変更時・強制ID変更時のみ1回だけ実行）
       React.useEffect(() => {
         if (!connected || !appConfig) return;
 
-        const syncGps = async () => {
+        const determineDevice = async () => {
           const targets = manualDeviceId ? [manualDeviceId] : deviceList;
           const thresholdSec = appConfig.system_settings?.data_freshness_threshold_sec || 3600;
           let foundFresh = false;
@@ -760,24 +761,8 @@
                 const diffSec = (Date.now() - logTime) / 1000;
 
                 if (diffSec <= thresholdSec) {
-                  setActiveDeviceId(targetId);
-                  setCurrentLat(last.latitude);
-                  setCurrentLng(last.longitude);
-                  setCurrentSpeed(last.speed_kmh);
-                  
-                  if (last.measured_at) {
-                    const cleanRaw = last.measured_at.split('.')[0].split('+')[0];
-                    setMeasuredTime(cleanRaw.replace('T', ' '));
-                  } else {
-                    setMeasuredTime("データなし");
-                  }
-                  
-                  const jstDate = new Date(last.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-                  setDbWriteTime(jstDate);
-                  
-                  const diffMins = Math.floor(diffSec / 60);
-                  setFreshness(diffMins < 1 ? "1分未満" : `${diffMins}分前のデータ`);
-                  
+                  setLockedTargetDevice(targetId); // 追跡対象をロック
+                  setActiveDeviceId(targetId);     // UI表示用
                   foundFresh = true;
                   break;
                 }
@@ -787,19 +772,64 @@
 
           if (!foundFresh && targets.length > 0) {
             const fallbackId = targets[0];
-            const last = await dbService.getLatestGPSLog(fallbackId);
+            setLockedTargetDevice(fallbackId); // 古くても強制ロック
             setActiveDeviceId(`${fallbackId} (過去データ)`);
             setFreshness("データ更新停止（閾値超過）");
-            if (last) {
-              setCurrentLat(last.latitude); setCurrentLng(last.longitude); setCurrentSpeed(last.speed_kmh);
-            }
+          } else if (targets.length === 0) {
+            setLockedTargetDevice(null);
+            setActiveDeviceId("検索中...");
           }
+        };
+        
+        determineDevice();
+      }, [connected, deviceList, manualDeviceId, appConfig]);
+
+      // Phase 7: ② 定期取得ポーリング処理（ロックされた端末だけを軽量に見に行く）
+      React.useEffect(() => {
+        if (!lockedTargetDevice) return;
+
+        const syncGps = async () => {
+          try {
+            const last = await dbService.getLatestGPSLog(lockedTargetDevice);
+            if (last) {
+              setCurrentLat(last.latitude);
+              setCurrentLng(last.longitude);
+              setCurrentSpeed(last.speed_kmh);
+              
+              if (last.measured_at) {
+                const cleanRaw = last.measured_at.split('.')[0].split('+')[0];
+                setMeasuredTime(cleanRaw.replace('T', ' '));
+              } else {
+                setMeasuredTime("データなし");
+              }
+              
+              if (last.created_at) {
+                const jstDate = new Date(last.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+                setDbWriteTime(jstDate);
+                
+                const logTime = new Date(last.created_at).getTime();
+                const diffSec = (Date.now() - logTime) / 1000;
+                const thresholdSec = appConfig?.system_settings?.data_freshness_threshold_sec || 3600;
+                
+                if (diffSec > thresholdSec) {
+                  setActiveDeviceId(`${lockedTargetDevice} (過去データ)`);
+                  setFreshness("データ更新停止（閾値超過）");
+                } else {
+                  const diffMins = Math.floor(diffSec / 60);
+                  setActiveDeviceId(lockedTargetDevice);
+                  setFreshness(diffMins < 1 ? "1分未満" : `${diffMins}分前のデータ`);
+                }
+              } else {
+                setDbWriteTime("データなし");
+              }
+            }
+          } catch(e){}
         };
         
         syncGps();
         const timer = setInterval(syncGps, gpsInterval * 1000);
         return () => clearInterval(timer);
-      }, [gpsInterval, connected, deviceList, manualDeviceId, appConfig]);
+      }, [gpsInterval, lockedTargetDevice, appConfig]);
 
       const formatETA = (minsLeft) => {
         if(isNaN(minsLeft)) return "--:--";
@@ -833,7 +863,7 @@
           <div className="flex justify-between items-center gap-4 flex-wrap border-b pb-5 border-slate-200">
             <div>
               <h1 className="text-2xl font-extrabold flex items-center gap-2 text-slate-900 leading-none">
-                到着時間予測 AI App <span className="text-[10px] bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-full">Phase 6</span>
+                到着時間予測 AI App <span className="text-[10px] bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-full">Phase 7</span>
               </h1>
               <p className="text-xs text-slate-500 mt-1.5 font-sans">100%ローカル稼働。勤務地ベースの自動経路セット・自動フォールバック推論機</p>
             </div>
