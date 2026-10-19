@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
-  </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://googletagmanager.com"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
-  <meta charset="UTF-8">
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    
+    <meta charset="UTF-8">
   <title>到着時間予測 AI App - Phase 8</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -51,8 +52,8 @@
 
   <!-- Google Fonts & Leaflet Maps -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- TensorFlow.js, Chart.js, Supabase, React and ReactDOM + Babel -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
@@ -107,7 +108,7 @@
   <!-- React UI and scripts -->
   <script type="text/babel">
 
-    // --- REUSABLE INLINE SVG ICONS ---
+    // --- REUSABLE INLINE SVG ICONS (Phase 5 restored) ---
     const Icons = {
       Navigation: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>,
       MapPin: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
@@ -280,7 +281,7 @@
     }
     const dbService = new DatabaseWrapper();
 
-    // --- TENSORFLOW LOCAL AI ENGINE MODEL ---
+    // --- TENSORFLOW LOCAL AI ENGINE MODEL (Phase 5 restored) ---
     class ETAInferenceModel {
       constructor() {
         this.model = null;
@@ -385,7 +386,7 @@
     }
     const aiModelService = new ETAInferenceModel();
 
-    // --- CHART COMPONENT USING NATIVE CHART.JS ---
+    // --- CHART COMPONENT USING NATIVE CHART.JS (Phase 5 restored) ---
     function LossChart({ data }) {
       const canvasRef = React.useRef(null);
       const chartInstanceRef = React.useRef(null);
@@ -438,7 +439,7 @@
       return <div className="h-40 w-full"><canvas ref={canvasRef}></canvas></div>;
     }
 
-    // --- VIEW COMPONENT: MODEL TRAINER ---
+    // --- VIEW COMPONENT: MODEL TRAINER (Phase 5 restored & updated trigger) ---
     function ModelTrainer({ onModelStatusChange, triggerPrediction, trainingSamplesCount, setTrainingSamplesCount }) {
       const [isExpanded, setIsExpanded] = React.useState(false); 
       const [epochs, setEpochs] = React.useState(60);
@@ -558,7 +559,7 @@
       );
     }
 
-    // --- VIEW COMPONENT: MAP ---
+    // --- VIEW COMPONENT: MAP (Phase 6 goals array version) ---
     function MapContainer({ goals, currentLat, currentLng, activeDeviceId }) {
       const mapRef = React.useRef(null);
       const markersRef = React.useRef({});
@@ -665,10 +666,12 @@
     function App() {
       const [appConfig, setAppConfig] = React.useState(null);
       
+      // Phase 6 States
       const [workplaceId, setWorkplaceId] = React.useState(localStorage.getItem("eta_workplace_id") || "");
       const [goals, setGoals] = React.useState([]);
       const [deviceList, setDeviceList] = React.useState([]);
       
+      // GPS Data
       const [currentLat, setCurrentLat] = React.useState(null);
       const [currentLng, setCurrentLng] = React.useState(null);
       const [currentSpeed, setCurrentSpeed] = React.useState(0);
@@ -676,6 +679,7 @@
       const [dbWriteTime, setDbWriteTime] = React.useState("未取得");
       const [freshness, setFreshness] = React.useState("計算中...");
       
+      // App control
       const [connected, setConnected] = React.useState(false);
       const [lockedTargetDevice, setLockedTargetDevice] = React.useState(null);
       const [activeDeviceId, setActiveDeviceId] = React.useState("検索中...");
@@ -683,10 +687,10 @@
       const [showDevMenu, setShowDevMenu] = React.useState(false);
       const [gpsInterval, setGpsInterval] = React.useState(15);
       
-      // ★ Phase 8: 予測時間のパネルをデフォルトで「閉じた状態(false)」に設定
+      // AI & ETA State
       const [currentHour, setCurrentHour] = React.useState(new Date().getHours());
       const [predictions, setPredictions] = React.useState([]);
-      const [showETA, setShowETA] = React.useState(false); 
+      const [showETA, setShowETA] = React.useState(false); // Default close
       const [showGuide, setShowGuide] = React.useState(false);
       const [tripAlert, setTripAlert] = React.useState(null);
       const [samples, setSamples] = React.useState(0);
@@ -750,6 +754,7 @@
 
       React.useEffect(() => { triggerPrediction(); }, [currentLat, currentLng, currentSpeed, currentHour, goals, modelState]);
 
+      // Phase 7: ① 探索してロックする処理（起動時・勤務地変更時・強制ID変更時のみ1回だけ実行）
       React.useEffect(() => {
         if (!connected || !appConfig) return;
 
@@ -766,8 +771,8 @@
                 const diffSec = (Date.now() - logTime) / 1000;
 
                 if (diffSec <= thresholdSec) {
-                  setLockedTargetDevice(targetId); 
-                  setActiveDeviceId(targetId);     
+                  setLockedTargetDevice(targetId); // 追跡対象をロック
+                  setActiveDeviceId(targetId);     // UI表示用
                   foundFresh = true;
                   break;
                 }
@@ -777,7 +782,7 @@
 
           if (!foundFresh && targets.length > 0) {
             const fallbackId = targets[0];
-            setLockedTargetDevice(fallbackId); 
+            setLockedTargetDevice(fallbackId); // 古くても強制ロック
             setActiveDeviceId(`${fallbackId} (過去データ)`);
             setFreshness("データ更新停止（閾値超過）");
           } else if (targets.length === 0) {
@@ -789,6 +794,7 @@
         determineDevice();
       }, [connected, deviceList, manualDeviceId, appConfig]);
 
+      // Phase 7: ② 定期取得ポーリング処理（ロックされた端末だけを軽量に見に行く）
       React.useEffect(() => {
         if (!lockedTargetDevice) return;
 
@@ -841,6 +847,7 @@
         return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
       };
 
+      // Trip completion logic (Phase 5 restored)
       const handleTripComplete = async (actualMins) => {
         if(!currentLat || !goals[0]) return;
         const dist = getDistanceKm(currentLat, currentLng, goals[0].lat, goals[0].lng);
@@ -862,7 +869,7 @@
 
       return (
         <div className="flex flex-col gap-6">
-          {/* Header */}
+          {/* Header (Phase 5 restored with Guide button) */}
           <div className="flex justify-between items-center gap-4 flex-wrap border-b pb-5 border-slate-200">
             <div>
               <h1 className="text-2xl font-extrabold flex items-center gap-2 text-slate-900 leading-none">
@@ -877,7 +884,7 @@
             </div>
           </div>
 
-          {/* 勤務地（ルート）選択パネル */}
+          {/* ▼ Phase 6：勤務地（ルート）選択パネル */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col gap-4">
             <div className="flex items-center gap-2 border-b pb-3 border-slate-100">
               <div className="bg-indigo-50 text-indigo-600 p-2 rounded-xl border"><Icons.MapPin /></div>
@@ -903,7 +910,7 @@
             {/* Left Col */}
             <div className="xl:col-span-7 flex flex-col gap-6">
               
-              {/* AI到着予測 (ETA) 補正出力パネル */}
+              {/* ▼ Phase 6：AI到着予測 (ETA) 補正出力（2ゴール並列表示）+ Phase 5 Accordion */}
               <div className="bg-white border text-slate-800 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b pb-3.5 border-slate-100 cursor-pointer" onClick={() => setShowETA(!showETA)}>
                   <div className="flex items-center gap-1.5 text-indigo-600">
@@ -940,6 +947,7 @@
                       )}
                     </div>
 
+                    {/* デバッグ検証用スライダー (Phase 5 restored) */}
                     <div className="bg-indigo-50/50 border border-indigo-100/50 p-3 rounded-xl flex flex-col gap-1.5">
                       <div className="flex justify-between text-xs text-indigo-955 font-bold">
                         <span className="flex items-center gap-1 font-sans"><Icons.Clock className="w-3.5 h-3.5 text-indigo-500" /> ラッシュ時AI推論特性のデバッグ検証</span>
@@ -1012,7 +1020,7 @@
             {/* Right Col: Admin/Dev Tools & Model Trainer */}
             <div className="xl:col-span-5 flex flex-col gap-6">
               
-              {/* 開発者向け強制オーバーライドメニュー */}
+              {/* ▼ Phase 6：開発者向け強制オーバーライドメニュー */}
               <div className="bg-slate-100 rounded-2xl p-5 border border-slate-300 border-dashed shadow-inner flex flex-col gap-4">
                 <div className="flex justify-between items-center border-b pb-3 border-slate-300 cursor-pointer" onClick={() => setShowDevMenu(!showDevMenu)}>
                   <div className="flex items-center gap-2">
@@ -1053,7 +1061,7 @@
                 )}
               </div>
 
-              {/* Neural network Deep learning component */}
+              {/* Neural network Deep learning component (Phase 5 restored) */}
               <ModelTrainer
                 onModelStatusChange={s => setModelState(s.state)}
                 triggerPrediction={triggerPrediction}
@@ -1063,7 +1071,7 @@
             </div>
           </div>
 
-          {/* ★ Phase 8: Guide Modal Operation Manual Dialog (文面変更適用) */}
+          {/* Guide Modal Operation Manual Dialog (Phase 5 restored) */}
           {showGuide && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[2500] p-4 text-left">
               <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border flex flex-col p-6 animate-fade-in text-slate-800 relative select-none">
@@ -1072,20 +1080,18 @@
                   <button onClick={() => setShowGuide(false)} className="text-slate-400 font-mono text-sm hover:text-slate-700">✕</button>
                 </div>
                 <div className="py-4 flex flex-col gap-3 text-xs leading-relaxed max-h-[400px] overflow-y-auto">
-                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100">
-                    現在予測精度がわるいのであまり信用しないでください。
-                  </div>
+                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100">現在予測精度がわるいのであまり信用しないでください。</div>
                   <p><b>1. 勤務地(ルート)の設定:</b> トップ画面から対象の工場等を選ぶと、自動的に該当するゴール座標と追跡対象デバイスがセットされます。</p>
                   <p><b>2. デバイスの鮮度検知:</b> 選択された勤務地に紐づくメインデバイスの通信が1時間以上途絶えた場合、自動的にサブデバイスへとフォールバックします。</p>
-                  <p><b>3. AIモデルの学習:</b> 右下の「再学習の実行」を押すと、それまでの走行実績を機械がその場で学習(ミニバックプロパゲーション演算)し、朝夕ラッシュの複雑な遅延の重みを習得します。</p>
-                  <p><b>4. 非線形性の検証:</b> 学習完了後、ETAパネルの「デバッグスライダー」を朝(8時台)や夕方(18時台)に動かします。AIが独自の遅延を加算算出しているのが確認できます。</p>
+                  <p><b>3. ×AIモデルの学習:</b> 右下の「再学習の実行」を押すと、それまでの走行実績を機械がその場で学習(ミニバックプロパゲーション演算)し、朝夕ラッシュの複雑な遅延の重みを習得します。</p>
+                  <p><b>4. ×非線形性の検証:</b> 学習完了後、ETAパネルの「デバッグスライダー」を朝(8時台)や夕方(18時台)に動かします。AIが独自の遅延を加算算出しているのが確認できます。</p>
                 </div>
                 <button onClick={() => setShowGuide(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-center shadow-sm">了解しました</button>
               </div>
             </div>
           )}
 
-          {/* Completion Alerts Toast */}
+          {/* Completion Alerts Toast (Phase 5 restored) */}
           {tripAlert && (
             <div className="fixed inset-0 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center z-[3000] p-4 select-none">
               <div className="bg-white rounded-2xl text-center p-6 border max-w-sm w-full flex flex-col gap-4 animate-bounce">
