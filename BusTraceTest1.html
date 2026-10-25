@@ -8,7 +8,7 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-XXXXXXXXXX');
+      gtag('config', 'G-QYXWBZBW7S');
     </script>
     
     <meta charset="UTF-8">
@@ -690,7 +690,7 @@
       // AI & ETA State
       const [currentHour, setCurrentHour] = React.useState(new Date().getHours());
       const [predictions, setPredictions] = React.useState([]);
-      const [showETA, setShowETA] = React.useState(true); // Default open
+      const [showETA, setShowETA] = React.useState(false); // Default close
       const [showGuide, setShowGuide] = React.useState(false);
       const [tripAlert, setTripAlert] = React.useState(null);
       const [samples, setSamples] = React.useState(0);
@@ -1080,11 +1080,11 @@
                   <button onClick={() => setShowGuide(false)} className="text-slate-400 font-mono text-sm hover:text-slate-700">✕</button>
                 </div>
                 <div className="py-4 flex flex-col gap-3 text-xs leading-relaxed max-h-[400px] overflow-y-auto">
-                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100">AIの予測精度は学習データに依存します。ローカルでの自律学習をお試しください。</div>
+                  <div className="font-bold text-indigo-600 bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100">現在予測精度がわるいのであまり信用しないでください。</div>
                   <p><b>1. 勤務地(ルート)の設定:</b> トップ画面から対象の工場等を選ぶと、自動的に該当するゴール座標と追跡対象デバイスがセットされます。</p>
                   <p><b>2. デバイスの鮮度検知:</b> 選択された勤務地に紐づくメインデバイスの通信が1時間以上途絶えた場合、自動的にサブデバイスへとフォールバックします。</p>
-                  <p><b>3. AIモデルの学習:</b> 右下の「再学習の実行」を押すと、それまでの走行実績を機械がその場で学習(ミニバックプロパゲーション演算)し、朝夕ラッシュの複雑な遅延の重みを習得します。</p>
-                  <p><b>4. 非線形性の検証:</b> 学習完了後、ETAパネルの「デバッグスライダー」を朝(8時台)や夕方(18時台)に動かします。AIが独自の遅延を加算算出しているのが確認できます。</p>
+                  <p><b>3. ×AIモデルの学習:</b> 右下の「再学習の実行」を押すと、それまでの走行実績を機械がその場で学習(ミニバックプロパゲーション演算)し、朝夕ラッシュの複雑な遅延の重みを習得します。</p>
+                  <p><b>4. ×非線形性の検証:</b> 学習完了後、ETAパネルの「デバッグスライダー」を朝(8時台)や夕方(18時台)に動かします。AIが独自の遅延を加算算出しているのが確認できます。</p>
                 </div>
                 <button onClick={() => setShowGuide(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2 px-4 rounded-xl text-center shadow-sm">了解しました</button>
               </div>
