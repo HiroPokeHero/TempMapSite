@@ -12,8 +12,9 @@
         { "name": "東岡崎駅", "lat": 34.951854, "lng": 137.166800 }
       ],
       "devices": [
-        "test1",
-        "hanazono2"
+        "hanazono1",
+        "hanazono2",
+        "test1"
       ]
     },
     {
